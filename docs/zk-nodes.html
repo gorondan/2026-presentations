@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>zk Nodes Scale</title>
+
+<style>
+:root {
+    --bg: #0b0f1a;
+    --surface: #141929;
+    --surface-light: #1c2237;
+    --accent-teal: #2dd4bf;
+    --accent-violet: #8b5cf6;
+    --accent-rose: #fb7185;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-dim: #475569;
+    --border: rgba(255,255,255,0.40);
+
+    --font-body: 'General Sans', sans-serif;
+    --body-size: clamp(1.05rem, 1.3vw, 1.25rem);
+    --small-size: clamp(0.75rem, 0.9vw, 1.05rem);
+    --tick-size: clamp(0.60rem, 0.9vw, 0.70rem);
+
+    --slide-padding: clamp(1.5rem, 5vw, 5rem);
+    --gap: clamp(0.5rem, 1vw, 1rem);
+}
+
+/* BASE */
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    padding: var(--slide-padding);
+}
+
+/* GRID: labels + bars */
+.scale {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    row-gap: var(--gap);
+    column-gap: var(--gap);
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* LABEL */
+.label {
+    display: flex;
+    align-items: center;
+    font-size: var(--small-size);
+    color: var(--text-secondary);
+}
+
+/* BAR */
+.bar {
+    position: relative;
+    height: clamp(32px, 1.2vw, 44px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+/* text */
+.text {
+    font-size: var(--body-size);
+    padding: 5px;
+    margin-left: 10px;
+}
+/* GROUP */
+
+.group {
+    grid-column: 1 / -1; /* spans label + bar columns */
+    font-size: var(--h3-size);
+    color: var(--text-primary);
+    margin-top: clamp(0.5rem, 1vw, 1rem);
+    margin-bottom: clamp(0.25rem, 0.5vw, 0.5rem);
+}
+/* FILL */
+.fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(
+        90deg,
+        var(--accent-teal),
+        var(--accent-violet),
+        var(--accent-rose)
+    );
+}
+
+/* AXIS ROW */
+.axis {
+    grid-column: 2; /* <-- alignment with bars */
+    position: relative;
+    height: 20px;
+    margin-top: 6px;
+}
+
+/* AXIS LINE */
+.axis-line {
+    position: absolute;
+    top: 8px;
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+}
+/* BIG TICKS */
+.big-tick {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: var(--body-size);
+    color: var(--text-dim);
+}
+/* TICKS */
+.tick {
+    position: absolute;
+    top: 20px;
+    transform: translateX(-50%);
+    font-size: var(--tick-size);
+    color: var(--text-primary);
+}
+
+/* tick mark */
+.tick::before {
+    content: "";
+    position: absolute;
+    top: -17.5px;
+    left: 50%;
+    width: 2px;
+    height: 15px;
+    background: var(--border);
+    transform: translateX(-50%);
+}
+</style>
+</head>
+
+<body>
+
+<div class="scale">
+     <div class="axis">
+        <div class="big-tick" style="left:0%">STATELESS</div>
+        <div class="big-tick" style="left:100%">STATEFULL</div>
+     </div>
+    <!-- EIP-7870 NODES -->
+    <div class="group" style="font-size: var(--body-size)"><strong>EIP-7870 Nodes</strong></div>
+
+    <div class="label">Attester</div>
+    <div class="bar"><div class="fill" style="width:100%"><div class="text"><strong>280GB</strong></div></div></div>
+
+    <div class="label">Full node</div>
+    <div class="bar"><div class="fill" style="width:100%"><div class="text"><strong>280GB</strong></div></div></div>
+
+    <div class="label">Proposer (Local Block Builder)</div>
+    <div class="bar"><div class="fill" style="width:100%"><div class="text"><strong>280B</strong></div></div></div>
+
+    <div class="group" style="font-size: var(--body-size)"><strong>ZK Nodes</strong></div>
+
+    <div class="label">Full Node (Altruistic)</div>
+    <div class="bar"><div class="fill" style="width:100%"><div class="text"><strong>280GB</strong></div></div></div>
+
+    <div class="label">Partial Node (VOPS + Proofs)</div>
+    <div class="bar"><div class="fill" style="width:17.85%"><div class="text"><strong>~50GB</strong></div></div></div>
+
+
+    <div class="label">VOPS (zk Attester + FOCIL)</div>
+    <div class="bar"><div class="fill" style="width:3%"><div class="text"><strong>8.4GB</strong></div></div></div>
+
+    <div class="label">zk Attester</div>
+    <div class="bar"><div class="fill" style="width:0%"></div></div>
+
+
+    <!-- AXIS (shares same grid column as bars) -->
+    <div class="axis">
+        <div class="axis-line"></div>
+
+        <div class="tick" style="left:0%"><ul><li>ATTESTING</li></ul></div>
+        <div class="tick" style="left:8.5%"><ul><li>ATTESTING</li><li>CR</li></ul></div>
+        <div class="tick" style="left:20.833333%"><ul><li>ATTESTING</li><li>CR</li><li>STATE & RPC SERVING</li><li>STATE MARKETS</li></ul></div>
+        <div class="tick" style="left:100%"><ul><li>ATTESTING</li><li>CR</li><li>STATE & RPC SERVING</li><li>STATE MARKETS</li></ul></div>
+    </div>
+
+</div>
+
+</body>
+</html>
