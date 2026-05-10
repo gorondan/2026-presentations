@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partial Statefulness — Rethinking Who Holds State, and Why</title>
+
+    <!-- Fonts: Instrument Serif for display, General Sans for body -->
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (TOPO GRADIENT THEME)
+           =========================================== */
+        :root {
+            /* Colors */
+            --bg: #0b0f1a;
+            --surface: #141929;
+            --surface-light: #1c2237;
+            --accent-teal: #2dd4bf;
+            --accent-violet: #8b5cf6;
+            --accent-rose: #fb7185;
+            --accent-amber: #fbbf24;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-dim: #475569;
+            --border: rgba(255, 255, 255, 0.06);
+            --scale-border: rgba(255, 255, 255, 0.40);
+
+            /* Typography — MUST use clamp() */
+            --font-display: 'Instrument Serif', serif;
+            --font-body: 'General Sans', sans-serif;
+            --title-size: clamp(2rem, 6vw, 4.5rem);
+            --h2-size: clamp(1.5rem, 4vw, 3rem);
+            --h3-size: clamp(1rem, 2vw, 1.5rem);
+            --body-size: clamp(0.75rem, 1.3vw, 1.05rem);
+            --small-size: clamp(0.6rem, 0.9vw, 0.8rem);
+            --tag-size: clamp(0.55rem, 0.85vw, 0.75rem);
+            --tick-size: clamp(0.60rem, 0.9vw, 0.70rem);
+
+            /* Spacing — MUST use clamp() */
+            --slide-padding: clamp(1.5rem, 5vw, 5rem);
+            --content-gap: clamp(0.75rem, 2vw, 2rem);
+            --element-gap: clamp(0.05rem, 1vw, 1rem);
+            --gap: clamp(0.5rem, 1vw, 1rem);
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration: 0.7s;
+        }
+
+        /* ===========================================
+           BASE RESET
+           =========================================== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ===========================================
+           VIEWPORT FITTING: MANDATORY BASE STYLES
+           =========================================== */
+        html,
+        body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            padding: var(--slide-padding);
+        }
+
+        .card,
+        .container,
+        .content-box {
+            max-width: min(90vw, 1000px);
+            max-height: min(80vh, 700px);
+        }
+
+        .feature-list,
+        .bullet-list {
+            gap: clamp(0.4rem, 1vh, 1rem);
+        }
+
+        .feature-list li,
+        .bullet-list li {
+            font-size: var(--body-size);
+            line-height: 1.4;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+        }
+
+        img,
+        .image-container {
+            max-width: 100%;
+            max-height: min(50vh, 400px);
+            object-fit: contain;
+        }
+
+        /* Short viewports */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+                --title-size: clamp(1.5rem, 5vw, 3rem);
+                --h2-size: clamp(1.25rem, 3.5vw, 2rem);
+            }
+        }
+
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+                --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+                --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            }
+
+            .nav-dots,
+            .keyboard-hint,
+            .decorative {
+                display: none;
+            }
+        }
+
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --title-size: clamp(1rem, 3.5vw, 1.5rem);
+                --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+                --body-size: clamp(0.65rem, 1vw, 0.85rem);
+            }
+        }
+
+        @media (max-width: 600px) {
+            :root {
+                --title-size: clamp(1.5rem, 8vw, 3rem);
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .two-col {
+                flex-direction: column !important;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+
+            html {
+                scroll-behavior: auto;
+            }
+        }
+
+        /* ===========================================
+           GLOBAL STYLES
+           =========================================== */
+        body {
+            background: var(--bg);
+            font-family: var(--font-body);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===========================================
+           TOPOGRAPHIC BACKGROUND ELEMENTS
+           =========================================== */
+        .topo-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .topo-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid var(--accent-teal);
+            opacity: 0.08;
+            animation: breathe 12s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.08;
+            }
+            50% {
+                transform: scale(1.04);
+                opacity: 0.04;
+            }
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        /* ===========================================
+           REVEAL ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(25px);
+            transition:
+                opacity var(--duration) var(--ease-out-expo),
+                transform var(--duration) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-d1 { transition-delay: 0.1s; }
+        .reveal-d2 { transition-delay: 0.2s; }
+        .reveal-d3 { transition-delay: 0.3s; }
+        .reveal-d4 { transition-delay: 0.4s; }
+        .reveal-d5 { transition-delay: 0.5s; }
+        .reveal-d6 { transition-delay: 0.6s; }
+        .reveal-d7 { transition-delay: 0.7s; }
+
+        /* ===========================================
+           COMMON TYPOGRAPHY COMPONENTS
+           =========================================== */
+        .eyebrow {
+            font-family: var(--font-body);
+            font-weight: 500;
+            font-size: var(--tag-size);
+            color: var(--accent-teal);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: clamp(0.5rem, 1.5vh, 1.2rem);
+        }
+
+        .slide-title {
+            font-family: var(--font-display);
+            font-weight: 400;
+            font-size: var(--h2-size);
+            color: var(--text-primary);
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            margin-bottom: clamp(0.5rem, 1.5vh, 1.2rem);
+        }
+
+        .slide-title em {
+            font-style: italic;
+            background: linear-gradient(135deg, var(--accent-teal), var(--accent-violet));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .body-text {
+            font-family: var(--font-body);
+            font-weight: 400;
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        .accent-rule {
+            width: 1px;
+            height: clamp(15px, 3vh, 30px);
+            background: linear-gradient(180deg, var(--accent-teal), transparent);
+            margin: clamp(0.3rem, 1vh, 0.8rem) 0;
+        }
+
+        .accent-rule-h {
+            width: clamp(30px, 5vw, 60px);
+            height: 1px;
+            background: linear-gradient(90deg, var(--accent-teal), transparent);
+            margin: clamp(0.3rem, 1vh, 0.8rem) 0;
+        }
+
+        .pill {
+            display: inline-block;
+            font-family: var(--font-body);
+            font-size: var(--tag-size);
+            font-weight: 500;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 0.25em 0.7em;
+            border-radius: 100px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .pill.accent {
+            color: var(--accent-teal);
+            border-color: rgba(45, 212, 191, 0.2);
+            background: rgba(45, 212, 191, 0.05);
+        }
+
+        .pill.violet {
+            color: var(--accent-violet);
+            border-color: rgba(139, 92, 246, 0.2);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .pill.rose {
+            color: var(--accent-rose);
+            border-color: rgba(251, 113, 133, 0.2);
+            background: rgba(251, 113, 133, 0.05);
+        }
+
+        .pill.amber {
+            color: var(--accent-amber);
+            border-color: rgba(251, 191, 36, 0.2);
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        /* ===========================================
+           FEATURE CARDS
+           =========================================== */
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: clamp(8px, 1vw, 12px);
+            padding: clamp(0.8rem, 2vw, 1.5rem);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-teal), var(--accent-violet));
+            opacity: 0.5;
+        }
+
+        .feature-card h3 {
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: var(--h3-size);
+            color: var(--text-primary);
+            margin-bottom: clamp(0.3rem, 0.8vh, 0.6rem);
+        }
+
+        .feature-card p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .feature-icon {
+            font-size: clamp(1.2rem, 2.5vw, 2rem);
+            margin-bottom: clamp(0.3rem, 0.8vh, 0.6rem);
+        }
+
+        /* ===========================================
+           DIAGRAM BOX
+           =========================================== */
+        .diagram-box {
+            background: rgba(20, 25, 41, 0.8);
+            border: 1px solid var(--border);
+            border-radius: clamp(6px, 0.8vw, 10px);
+            padding: clamp(0.8rem, 2vw, 1.5rem);
+            font-family: var(--font-body), monospace;
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            line-height: 1.7;
+            white-space: pre-line;
+        }
+
+        .diagram-box .highlight { color: var(--accent-teal); font-weight: 600; }
+        .diagram-box .dim { color: var(--text-dim); }
+        .diagram-box .violet { color: var(--accent-violet); }
+        .diagram-box .rose { color: var(--accent-rose); }
+        .diagram-box .amber { color: var(--accent-amber); }
+
+        /* ===========================================
+           TWO-COLUMN LAYOUT
+           =========================================== */
+        .two-col {
+            display: flex;
+            gap: clamp(1rem, 3vw, 3rem);
+            align-items: flex-start;
+        }
+
+        .two-col .col {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .two-col .col-narrow {
+            flex: 0 0 40%;
+        }
+
+        .two-col .col-wide {
+            flex: 0 0 55%;
+        }
+
+        /* ===========================================
+           BULLET LIST STYLING
+           =========================================== */
+        .points {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.4rem, 1vh, 0.8rem);
+        }
+
+        .points li {
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.55;
+            padding-left: clamp(0.8rem, 1.5vw, 1.2rem);
+            position: relative;
+        }
+
+        .points li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.55em;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent-teal);
+            opacity: 0.6;
+        }
+
+        .points li strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* ===========================================
+           PROGRESS BAR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-teal), var(--accent-violet));
+            width: 0%;
+            z-index: 9999;
+            transition: width 0.3s ease;
+        }
+
+        /* ===========================================
+           NAV DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: clamp(0.8rem, 2vw, 1.5rem);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 0.8vh, 10px);
+            z-index: 1000;
+        }
+
+        .nav-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            padding: 0;
+        }
+
+        .nav-dot.active {
+            background: var(--accent-teal);
+            box-shadow: 0 0 8px rgba(45, 212, 191, 0.4);
+            transform: scale(1.3);
+        }
+
+        /* ===========================================
+           SLIDE NUMBER
+           =========================================== */
+        .slide-num {
+            position: absolute;
+            bottom: clamp(0.8rem, 2vh, 1.5rem);
+            right: clamp(1rem, 3vw, 2rem);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: var(--text-dim);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        /* ===========================================
+           SLIDE 1: TITLE
+           =========================================== */
+        .title-slide .slide-content {
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide h1 {
+            font-family: var(--font-display);
+            font-weight: 400;
+            font-size: var(--title-size);
+            color: var(--text-primary);
+            line-height: 1.08;
+            letter-spacing: -0.02em;
+        }
+
+        .title-slide h1 em {
+            font-style: italic;
+            background: linear-gradient(135deg, var(--accent-teal), var(--accent-violet));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .title-rule {
+            width: 1px;
+            height: clamp(20px, 4vh, 40px);
+            background: linear-gradient(180deg, var(--accent-teal), transparent);
+            margin: clamp(0.5rem, 1.5vh, 1rem) auto;
+        }
+
+        .title-sub {
+            font-family: var(--font-body);
+            font-weight: 400;
+            font-size: clamp(0.8rem, 1.4vw, 1.15rem);
+            color: var(--text-secondary);
+            max-width: 500px;
+        }
+
+        .title-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: clamp(0.8rem, 2vh, 1.5rem);
+        }
+
+        /* ===========================================
+           SLIDE-SPECIFIC: COMPARISON TABLE
+           =========================================== */
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--body-size);
+        }
+
+        .compare-table th {
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: var(--small-size);
+            color: var(--accent-teal);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: clamp(0.3rem, 0.8vh, 0.6rem) clamp(0.5rem, 1vw, 1rem);
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .compare-table td {
+            padding: clamp(0.3rem, 0.8vh, 0.6rem) clamp(0.5rem, 1vw, 1rem);
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            vertical-align: top;
+        }
+
+        .compare-table td:first-child {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* ===========================================
+           CALLOUT BOX
+           =========================================== */
+        .callout {
+            background: rgba(45, 212, 191, 0.05);
+            border-left: 2px solid var(--accent-teal);
+            padding: clamp(0.6rem, 1.5vw, 1.2rem);
+            border-radius: 0 clamp(4px, 0.5vw, 8px) clamp(4px, 0.5vw, 8px) 0;
+            margin-top: clamp(0.5rem, 1.5vh, 1rem);
+        }
+
+        .callout p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+
+        .callout strong {
+            color: var(--accent-teal);
+        }
+
+        /* ===========================================
+           FLOW ARROWS
+           =========================================== */
+        .flow {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.5rem, 1.5vw, 1.5rem);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .flow-step {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: clamp(6px, 0.8vw, 10px);
+            padding: clamp(0.5rem, 1.2vw, 1rem) clamp(0.8rem, 1.5vw, 1.5rem);
+            text-align: center;
+            flex: 1;
+            min-width: clamp(80px, 12vw, 140px);
+        }
+
+        .flow-step .step-label {
+            font-size: var(--small-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .flow-step .step-desc {
+            font-size: var(--tag-size);
+            color: var(--text-secondary);
+        }
+
+        .flow-arrow {
+            color: var(--text-dim);
+            font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+        }
+
+        /* ===========================================
+           LARGE STAT / HIGHLIGHT NUMBER
+           =========================================== */
+        .big-stat {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-style: italic;
+            line-height: 1;
+        }
+
+        .big-stat.teal {
+            background: linear-gradient(135deg, var(--accent-teal), #5eead4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ===========================================
+           SLIDE IMAGES
+           =========================================== */
+        .slide-image {
+            max-width: 80%;
+            max-height: min(50vh, 450px);
+            object-fit: contain;
+            border-radius: clamp(6px, 0.8vw, 12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .slide-image.large {
+            max-height: min(58vh, 520px);
+        }
+
+        .slide-image.hero {
+            max-height: min(55vh, 480px);
+        }
+
+        .image-caption {
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: var(--text-dim);
+            font-style: italic;
+            margin-top: clamp(0.3rem, 0.8vh, 0.6rem);
+            text-align: center;
+        }
+
+        /* ===========================================
+           ZK NODE POWERBAR
+           =========================================== */
+        .zk-scale-wrap {
+            width: 100%;
+            max-width: min(86vw, 1180px);
+            margin: 0 auto;
+        }
+
+        .zk-scale {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            row-gap: var(--gap);
+            column-gap: var(--gap);
+            width: 100%;
+        }
+
+        .zk-scale-group {
+            grid-column: 1 / -1;
+            font-size: var(--body-size);
+            color: var(--text-primary);
+            margin-top: clamp(0.5rem, 1vw, 1rem);
+            margin-bottom: clamp(0.25rem, 0.5vw, 0.5rem);
+        }
+
+        .zk-scale-label {
+            display: flex;
+            align-items: center;
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+        }
+
+        .zk-scale-bar {
+            position: relative;
+            height: clamp(28px, 3vw, 40px);
+            background: var(--surface);
+            border: 1px solid var(--scale-border);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .zk-scale-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(
+                90deg,
+                var(--accent-teal),
+                var(--accent-violet),
+                var(--accent-rose)
+            );
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+        }
+
+        .zk-scale-text {
+            font-size: var(--body-size);
+            padding: 5px 10px;
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+            height: 100%;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .zk-scale-axis-top {
+            grid-column: 2;
+            position: relative;
+            height: 20px;
+            margin-bottom: clamp(0.25rem, 0.5vw, 0.5rem);
+        }
+
+        .zk-scale-big-tick {
+            position: absolute;
+            top: 0;
+            transform: translateX(-50%);
+            font-size: var(--body-size);
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .zk-scale-big-tick.left {
+            transform: translateX(0);
+        }
+
+        .zk-scale-big-tick.right {
+            transform: translateX(-100%);
+        }
+
+        .zk-scale-axis-bottom {
+            grid-column: 2;
+            position: relative;
+            height: clamp(70px, 10vh, 96px);
+            margin-top: 6px;
+        }
+
+        .zk-scale-axis-line {
+            position: absolute;
+            top: 8px;
+            width: 100%;
+            height: 1px;
+            background: var(--scale-border);
+        }
+
+        .zk-scale-tick {
+            position: absolute;
+            top: 20px;
+            transform: translateX(-50%);
+            font-size: var(--tick-size);
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .zk-scale-tick::before {
+            content: "";
+            position: absolute;
+            top: -17px;
+            left: 50%;
+            width: 2px;
+            height: 15px;
+            background: var(--scale-border);
+            transform: translateX(-50%);
+        }
+
+        .zk-scale-tick ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            text-align: left;
+        }
+
+        .zk-scale-tick li {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 900px) {
+            .zk-scale {
+                grid-template-columns: 1fr;
+            }
+
+            .zk-scale-axis-top,
+            .zk-scale-axis-bottom,
+            .zk-scale-group,
+            .zk-scale-label,
+            .zk-scale-bar {
+                grid-column: 1;
+            }
+
+            .zk-scale-label {
+                margin-bottom: -0.2rem;
+            }
+
+            .zk-scale-axis-top {
+                height: 40px;
+            }
+
+            .zk-scale-big-tick.left {
+                left: 0 !important;
+                transform: translateX(0);
+            }
+
+            .zk-scale-big-tick.right {
+                left: 100% !important;
+                transform: translateX(-100%);
+            }
+        }
+
+        /* ===========================================
+           CLOSING SLIDE
+           =========================================== */
+        .closing-slide .slide-content {
+            align-items: center;
+            text-align: center;
+        }
+
+        /* ===========================================
+           INLINE EDITING (opt-in)
+           =========================================== */
+        .edit-hotzone {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 80px;
+            height: 80px;
+            z-index: 10000;
+            cursor: pointer;
+        }
+
+        .edit-toggle {
+            position: fixed;
+            top: clamp(0.5rem, 1.5vh, 1rem);
+            left: clamp(0.5rem, 1.5vw, 1rem);
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            padding: 0.4em 0.8em;
+            border-radius: 6px;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10001;
+        }
+
+        .edit-toggle.show,
+        .edit-toggle.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .edit-toggle.active {
+            background: var(--accent-teal);
+            color: var(--bg);
+            border-color: var(--accent-teal);
+        }
+
+        [contenteditable="true"] {
+            outline: 1px dashed rgba(45, 212, 191, 0.3);
+            outline-offset: 4px;
+            border-radius: 4px;
+            cursor: text;
+        }
+
+        .edit-save-toast {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--surface-light);
+            border: 1px solid var(--accent-teal);
+            color: var(--accent-teal);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            padding: 0.5em 1.2em;
+            border-radius: 100px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 10002;
+            pointer-events: none;
+        }
+
+        .edit-save-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Navigation dots -->
+    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+    <!-- Edit mode toggle (opt-in inline editing) -->
+    <div class="edit-hotzone" id="editHotzone"></div>
+    <button class="edit-toggle" id="editToggle" title="Edit mode (E)">Edit</button>
+    <div class="edit-save-toast" id="saveToast">Saved to localStorage</div>
+
+    <!-- ===========================================
+         SLIDE 1: TITLE
+         =========================================== -->
+    <section class="slide title-slide" data-slide="0">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:900px;height:900px;top:-250px;right:-250px;"></div>
+            <div class="topo-ring" style="width:650px;height:650px;top:-100px;right:-100px;animation-delay:-2s;"></div>
+            <div class="topo-ring" style="width:400px;height:400px;top:50px;right:50px;animation-delay:-4s;"></div>
+            <div class="topo-ring" style="width:750px;height:750px;bottom:-300px;left:-250px;border-color:var(--accent-violet);animation-delay:-3s;"></div>
+            <div class="topo-ring" style="width:500px;height:500px;bottom:-150px;left:-100px;border-color:var(--accent-violet);animation-delay:-5s;"></div>
+        </div>
+
+        <div class="blob" style="width:clamp(300px,40vw,600px);height:clamp(300px,40vw,600px);top:-10%;right:-5%;background:var(--accent-teal);"></div>
+        <div class="blob" style="width:clamp(250px,35vw,500px);height:clamp(250px,35vw,500px);bottom:-15%;left:-5%;background:var(--accent-violet);"></div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">Ethereum Research</div>
+            <h1 class="reveal reveal-d1">Partial Statefulness<br><em>and Partial Nodes</em></h1>
+            <div class="title-rule reveal reveal-d2"></div>
+            <p class="title-sub reveal reveal-d3">CL EXTENSION</p>
+            <div class="title-tags reveal reveal-d4">
+                <span class="pill accent">Snap Sync</span>
+                <span class="pill violet">ZKEVMs</span>
+                <span class="pill">MPT Proofs</span>
+                <span class="pill rose">State Markets</span>
+            </div>
+        </div>
+
+        <div class="slide-num">01 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 2: THE PROBLEM — Statelessness & State
+         =========================================== -->
+    <section class="slide" data-slide="1">
+        <div class="blob" style="width:clamp(200px,30vw,400px);height:clamp(200px,30vw,400px);top:-5%;left:-5%;background:var(--accent-rose);opacity:0.08;"></div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">The Problem: at projected rate, state will grow into the terabytes zone, in just a few years</div>
+            <div class="body-text">resource: ethpandaops - TheLab: EL world state growth</div>
+            <img src="assets/the-problem.png" alt="EL world state growth chart" style="width:200%;">
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <h2 class="slide-title reveal reveal-d1">ZKEVMs solve verification.<br><em>But who will hold the state?</em></h2>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <ul class="points reveal reveal-d3">
+                <li><strong>ZKEVMs decouple verification from state</strong> — validators no longer need full state to verify blocks. A single SNARK proof replaces re-execution entirely.</li>
+                <li><strong>No reason to even hold state</strong> — today, nodes hold Ethereum's 300+ GB state as a byproduct of block verification. Once ZKEVMs remove that need, there's no incentive to keep it at all.</li>
+                <li><strong>Centralization trap</strong> — only RPC providers and block builders will retain state, creating de-facto data centralization. Running Full Nodes will be the exception, rather than the rule.</li>
+                <li><strong>The mempool problem</strong> — without state, nodes can't validate transactions, undermining censorship resistance mechanisms like FOCIL.</li>
+            </ul>
+        </div>
+
+        <div class="slide-num">02 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 3: WHAT IS PARTIAL STATEFULNESS?
+         =========================================== -->
+    <section class="slide" data-slide="2">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:500px;height:500px;bottom:-200px;right:-150px;animation-delay:-2s;"></div>
+            <div class="topo-ring" style="width:350px;height:350px;bottom:-100px;right:-50px;animation-delay:-4s;"></div>
+        </div>
+
+        <div class="blob" style="width:clamp(200px,25vw,350px);height:clamp(200px,25vw,350px);bottom:-8%;right:-3%;background:var(--accent-teal);opacity:0.08;"></div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">Core Concept of Partial Statefulness</div>
+
+            <h2 class="slide-title reveal reveal-d1">What if nodes could hold <em>only</em><br>what they care about...</h2>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+            <div><strong>EL logical state topology: MPT traversal &rarr; implicit key-addressed trie. Partial Nodes would need a minimal data-set for coherence.</strong></div><br>
+            <ul class="points reveal reveal-d3" style="margin-bottom:var(--content-gap);">
+                <li><strong>Full account trie</strong> — every account's balance, nonce, and code hash is synced. The complete view of all 300+ million accounts.</li>
+                <li><strong>Selective storage</strong> — only download storage and bytecode state sub-graphs for contracts you choose to track (e.g., WETH, DAI, Uniswap).</li>
+            </ul>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+            <div><strong>CL logical state topology: SSZ container &rarr; explicit tree. Partial Nodes would NOT need a minimal data-set for coherence.</strong></div><br>
+            <ul class="points reveal reveal-d3" style="margin-bottom:var(--content-gap);">
+                <li><strong>State sub-graphs</strong> — partial nodes can keep just the CL state sub-graphs that are of interest to them.</li>
+            </ul>
+
+            <h2 class="slide-title reveal reveal-d1">...and still be <em>coherent</em><br> under the canonical state root?</h2>
+
+            <div class="callout reveal reveal-d5">
+                <p><strong>No re-execution:</strong> a small, widely available data set updated via some vehicle, e.g. Block Access Lists (BAL), keeps everyone coherent.</p>
+            </div>
+        </div>
+
+        <div class="slide-num">03 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 4: FOLLOWING THE CHAIN — via some sidecar
+         =========================================== -->
+    <section class="slide" data-slide="3">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:550px;height:550px;bottom:-250px;left:-200px;animation-delay:-2s;"></div>
+        </div>
+
+        <div class="blob" style="width:clamp(200px,25vw,350px);height:clamp(200px,25vw,350px);bottom:-10%;left:10%;background:var(--accent-amber);opacity:0.06;"></div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">No Re-Execution</div>
+
+            <h2 class="slide-title reveal reveal-d1">Following the tip of the chain with <em>Full-state diffs + Account-hash diffs</em></h2>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <ul class="points reveal reveal-d3" style="margin-bottom:var(--content-gap);">
+                <li><strong>1. Snap sync account trie</strong> — download all accounts + intermediate MPT nodes (~50 GB).</li>
+                <li><strong>2. Snap sync tracked storage</strong> — download full storage tries for selected contracts.</li>
+                <li><strong>3. Heal state</strong> — apply state diffs per block, then hash everything up to state root and compare it with the block header root.</li>
+            </ul>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <div class="callout reveal reveal-d5">
+                <p><strong>For coherence, Partially Stateful (PS) nodes need:</strong> balance changes, nonce changes, storage writes, code changes — per account. Tracked contracts need full storage updates. For untracked contracts, the node needs to check which ones changed and update their account-level hash.</p>
+            </div>
+
+            <div class="callout reveal reveal-d6" style="margin-top:clamp(0.3rem, 0.8vh, 0.5rem);border-left-color:var(--accent-violet);">
+                <p><strong>Resolving untracked contracts:</strong> <em>Ideally</em>, the vehicle carrying the full-state diffs would include account-hash diffs for all accounts touched by the current block's transactions — making partial nodes self-sufficient.</p>
+            </div>
+        </div>
+
+        <div class="slide-num">04 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 5: SERVING THE NETWORK
+         =========================================== -->
+    <section class="slide" data-slide="4">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:600px;height:600px;top:-250px;left:50%;border-color:var(--accent-teal);animation-delay:-1s;"></div>
+        </div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">Network Participation</div>
+
+            <h2 class="slide-title reveal reveal-d1">The Partial Node - not just a consumer — <em>a provider</em></h2>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <div class="two-col reveal reveal-d3">
+                <div class="col" style="flex:1;">
+                    <div style="display:flex;flex-direction:column;gap:clamp(0.4rem, 1vh, 0.8rem);">
+                        <div class="feature-card">
+                            <h3>&#x1F333; MPT Proofs</h3>
+                            <p>Generate valid Merkle proofs for tracked accounts and storage — serve authenticated RPC.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <h3>&#x1F504; Help Snap Sync</h3>
+                            <p>Serve account and storage ranges to bootstrapping nodes — you hold the trie data they need.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <h3>&#x1F310; Serve RPC</h3>
+                            <p>Answer balance, nonce, storage queries for tracked contracts — no centralized endpoints needed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide-num">05 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 6: The ZK Node (VOPS is a subset)
+         =========================================== -->
+    <section class="slide" data-slide="5">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:650px;height:650px;bottom:-200px;left:-200px;border-color:var(--accent-violet);animation-delay:-2s;"></div>
+            <div class="topo-ring" style="width:400px;height:400px;bottom:-80px;left:-50px;border-color:var(--accent-violet);animation-delay:-4s;"></div>
+        </div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">The zk Node - Exploratory</div>
+
+            <h2 class="slide-title reveal reveal-d1">Partial <em>zk Nodes</em></h2>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <div class="zk-scale-wrap reveal reveal-d3">
+                <div class="zk-scale">
+                    <div class="zk-scale-axis-top">
+                        <div class="zk-scale-big-tick left" style="left:0%;">STATELESS</div>
+                        <div class="zk-scale-big-tick right" style="left:100%;">STATEFULL</div>
+                    </div>
+
+                    <div class="zk-scale-group"><strong>EIP-7870 Nodes</strong></div>
+
+                    <div class="zk-scale-label">Attester</div>
+                    <div class="zk-scale-bar">
+                        <div class="zk-scale-fill" style="width:100%;">
+                            <div class="zk-scale-text"><strong>280GB</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="zk-scale-label">Full node</div>
+                    <div class="zk-scale-bar">
+                        <div class="zk-scale-fill" style="width:100%;">
+                            <div class="zk-scale-text"><strong>280GB</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="zk-scale-label">Proposer (Local Block Builder)</div>
+                    <div class="zk-scale-bar">
+                        <div class="zk-scale-fill" style="width:100%;">
+                            <div class="zk-scale-text"><strong>280GB</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="zk-scale-group"><strong>ZK Nodes</strong></div>
+
+                    <div class="zk-scale-label">Full Node (Altruistic)</div>
+                    <div class="zk-scale-bar">
+                        <div class="zk-scale-fill" style="width:100%;">
+                            <div class="zk-scale-text"><strong>280GB</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="zk-scale-label">Partial Node (VOPS + Proofs)</div>
+                    <div class="zk-scale-bar">
+                        <div class="zk-scale-fill" style="width:17.85%;">
+                            <div class="zk-scale-text"><strong>~50GB</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="zk-scale-label">VOPS (zk Attester + FOCIL)</div>
+                    <div class="zk-scale-bar">
+                        <div class="zk-scale-fill" style="width:3%;">
+                            <div class="zk-scale-text"><strong>8.4GB</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="zk-scale-label">zk Attester</div>
+                    <div class="zk-scale-bar">
+                        <div class="zk-scale-fill" style="width:0%;"></div>
+                    </div>
+
+                    <div class="zk-scale-axis-bottom">
+                        <div class="zk-scale-axis-line"></div>
+
+                        <div class="zk-scale-tick" style="left:0%;">
+                            <ul>
+                                <li>ATTESTING</li>
+                            </ul>
+                        </div>
+
+                        <div class="zk-scale-tick" style="left:8.5%;">
+                            <ul>
+                                <li>ATTESTING</li>
+                                <li>CR</li>
+                            </ul>
+                        </div>
+
+                        <div class="zk-scale-tick" style="left:17.85%;">
+                            <ul>
+                                <li>ATTESTING</li>
+                                <li>CR</li>
+                                <li>STATE &amp; RPC SERVING</li>
+                                <li>STATE MARKETS</li>
+                            </ul>
+                        </div>
+
+                        <div class="zk-scale-tick" style="left:100%;">
+                            <ul>
+                                <li>ATTESTING</li>
+                                <li>CR</li>
+                                <li>STATE &amp; RPC SERVING</li>
+                                <li>STATE MARKETS</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <div class="two-col reveal reveal-d3">
+                <div class="col-wide" style="flex:1;">
+                    <ul class="points">
+                        <li><strong>Partial statefulness enables VOPS</strong> — a ZKEVM node that is partially stateful gets the best of both worlds: SNARK verification + selective state holding.</li>
+                        <li><strong>Mempool health</strong> — validate transactions locally (check balances, nonces) without centralized state oracles.</li>
+                        <li><strong>Inclusion list support</strong> — nodes can independently curate and propose inclusion lists (FOCIL), maintaining censorship resistance.</li>
+                        <li><strong>Earn while validating</strong> — serve RPC for tracked contracts, participate in snap sync, generate Merkle proofs — all while running a lightweight ZKEVM validator.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide-num">06 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 7: BAL CHANGE POST-GLAMSTERDAM PROPOSAL
+         =========================================== -->
+    <section class="slide" data-slide="6">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:550px;height:550px;bottom:-250px;left:-200px;animation-delay:-2s;"></div>
+        </div>
+
+        <div class="blob" style="width:clamp(200px,25vw,350px);height:clamp(200px,25vw,350px);bottom:-10%;left:10%;background:var(--accent-amber);opacity:0.06;"></div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">post-Glamsterdam BAL change proposal</div>
+
+            <h2 class="slide-title reveal reveal-d1">Add account-hash diffs to<em>&nbsp;Block Access Lists</em></h2>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <div class="callout reveal reveal-d5">
+                <p><strong>BAL contains:</strong> balance changes, nonce changes, storage writes, code changes — per account, per transaction.</p>
+            </div>
+
+            <div class="callout reveal reveal-d6" style="margin-top:clamp(0.3rem, 0.8vh, 0.5rem);border-left-color:var(--accent-violet);">
+                <p><strong>Proposal:</strong>&nbsp;Add block hash diffs as a list of the addresses touched by the block accompanied by the account's pre-state hash and its post-state hash. <strong>This unlocks P.S. and VOPS (with ZKEVM)</strong>.</p>
+            </div>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <img src="assets/bal-room13.png" alt="BAL breakout room board" class="slide-image">
+        </div>
+
+        <div class="slide-num">07 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 8: DESIGN SPACE
+         =========================================== -->
+    <section class="slide" data-slide="7">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:550px;height:550px;bottom:-250px;left:-200px;animation-delay:-2s;"></div>
+        </div>
+
+        <div class="blob" style="width:clamp(200px,25vw,350px);height:clamp(200px,25vw,350px);bottom:-10%;left:10%;background:var(--accent-amber);opacity:0.06;"></div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">Design Space</div>
+
+            <h2 class="slide-title reveal reveal-d1">Domain-Separated State Subgraphs<em>&nbsp;EL and CL</em></h2>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <p class="body-text reveal reveal-d3" style="margin-bottom:var(--content-gap);">Currently, Beacon DB ~100 - 200 GB; TBD the size in zk Nodes, probably depending on Weak Subjectivity Period and reorg window.</p>
+
+            <ul class="points reveal reveal-d3" style="margin-bottom:var(--content-gap);">
+                <li><strong>EL existing topology:</strong>&nbsp;Accounts, Storage</li>
+                <li><strong>CL existing topology:</strong>&nbsp;Validator registry &amp; Balances, Randomness &amp; Slashings, [...], History, Participation &amp; Inactivity, Finality</li>
+            </ul>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <div class="callout reveal reveal-d5">
+                <p><strong>zk Stateless nodes:</strong>&nbsp;No EL or CL state - Attesting nodes</p>
+            </div>
+
+            <div class="callout reveal reveal-d5">
+                <p><strong>zk Partial nodes:</strong>&nbsp;Extend Partial Statefulness to CL by leveraging this "state as a partially divisible graph".</p>
+            </div>
+
+            <div class="callout reveal reveal-d6" style="margin-top:clamp(0.3rem, 0.8vh, 0.5rem);border-left-color:var(--accent-violet);">
+                <p><strong>Capabilities:</strong>&nbsp;No re-execution; Attesting; Participating in Censorship Resistance schemes (FOCIL); RPC calls, Queries &amp; State serving (for tracked accounts, contracts &amp; domains).</p>
+            </div>
+        </div>
+
+        <div class="slide-num">08 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE 9: THANKS
+         =========================================== -->
+    <section class="slide" data-slide="8">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:550px;height:550px;bottom:-250px;left:-200px;animation-delay:-2s;"></div>
+        </div>
+
+        <div class="blob" style="width:clamp(200px,25vw,350px);height:clamp(200px,25vw,350px);bottom:-10%;left:10%;background:var(--accent-amber);opacity:0.06;"></div>
+
+        <div class="slide-content">
+            <div class="eyebrow reveal">Dan Goron, Ethereum Fellow</div>
+
+            <h2 class="slide-title reveal reveal-d1">Thank you,<em>&nbsp;let's chat!</em></h2>
+
+            <div class="accent-rule reveal reveal-d2"></div>
+
+            <p class="body-text reveal reveal-d3" style="margin-bottom:var(--content-gap);">github:&nbsp;orondan</p>
+            <p class="body-text reveal reveal-d3" style="margin-bottom:var(--content-gap);">X:&nbsp;@DanGoron2</p>
+        </div>
+
+        <div class="slide-num">09 / 09</div>
+    </section>
+
+    <!-- ===========================================
+         JAVASCRIPT: Slide Controller + Inline Editing
+         =========================================== -->
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.isScrolling = false;
+
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupWheelNav();
+                this.setupProgressBar();
+                this.setupNavDots();
+            }
+
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            const idx = Array.from(this.slides).indexOf(entry.target);
+                            if (idx !== -1) {
+                                this.currentSlide = idx;
+                                this.updateProgressBar();
+                                this.updateNavDots();
+                            }
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach((slide) => observer.observe(slide));
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.target && e.target.getAttribute('contenteditable') === 'true') return;
+
+                    switch (e.key) {
+                        case 'ArrowDown':
+                        case 'ArrowRight':
+                        case ' ':
+                        case 'PageDown':
+                            e.preventDefault();
+                            this.goToSlide(this.currentSlide + 1);
+                            break;
+                        case 'ArrowUp':
+                        case 'ArrowLeft':
+                        case 'PageUp':
+                            e.preventDefault();
+                            this.goToSlide(this.currentSlide - 1);
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.goToSlide(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.goToSlide(this.slides.length - 1);
+                            break;
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let startY = 0;
+
+                document.addEventListener('touchstart', (e) => {
+                    startY = e.touches[0].clientY;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const diff = startY - e.changedTouches[0].clientY;
+                    if (Math.abs(diff) > 50) {
+                        this.goToSlide(this.currentSlide + (diff > 0 ? 1 : -1));
+                    }
+                }, { passive: true });
+            }
+
+            setupWheelNav() {
+                document.addEventListener('wheel', (e) => {
+                    if (this.isScrolling) return;
+
+                    this.isScrolling = true;
+
+                    if (Math.abs(e.deltaY) > 30) {
+                        this.goToSlide(this.currentSlide + (e.deltaY > 0 ? 1 : -1));
+                    }
+
+                    setTimeout(() => {
+                        this.isScrolling = false;
+                    }, 800);
+                }, { passive: true });
+            }
+
+            goToSlide(index) {
+                index = Math.max(0, Math.min(index, this.slides.length - 1));
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                this.currentSlide = index;
+                this.updateProgressBar();
+                this.updateNavDots();
+            }
+
+            setupProgressBar() {
+                this.progressBar = document.getElementById('progressBar');
+                this.updateProgressBar();
+            }
+
+            updateProgressBar() {
+                if (this.progressBar) {
+                    const pct = ((this.currentSlide + 1) / this.slides.length) * 100;
+                    this.progressBar.style.width = pct + '%';
+                }
+            }
+
+            setupNavDots() {
+                this.navDots = document.getElementById('navDots');
+                if (!this.navDots) return;
+
+                this.navDots.innerHTML = '';
+
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    this.navDots.appendChild(dot);
+                });
+            }
+
+            updateNavDots() {
+                if (!this.navDots) return;
+
+                this.navDots.querySelectorAll('.nav-dot').forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+            }
+        }
+
+        class InlineEditor {
+            constructor() {
+                this.isActive = false;
+                this.storageKey = 'partial-state-presentation-edits';
+                this.editableSelectors = 'h1, h2, h3, p, li, .step-label, .step-desc, span.pill';
+                this.boundSaveHandler = () => this.saveEdits();
+
+                this.setupToggle();
+                this.setupKeyboard();
+                this.loadSavedEdits();
+            }
+
+            setupToggle() {
+                const hotzone = document.getElementById('editHotzone');
+                const toggle = document.getElementById('editToggle');
+                let hideTimeout = null;
+
+                toggle.addEventListener('click', () => this.toggleEditMode());
+
+                hotzone.addEventListener('mouseenter', () => {
+                    clearTimeout(hideTimeout);
+                    toggle.classList.add('show');
+                });
+
+                hotzone.addEventListener('mouseleave', () => {
+                    hideTimeout = setTimeout(() => {
+                        if (!this.isActive) toggle.classList.remove('show');
+                    }, 400);
+                });
+
+                toggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+
+                toggle.addEventListener('mouseleave', () => {
+                    hideTimeout = setTimeout(() => {
+                        if (!this.isActive) toggle.classList.remove('show');
+                    }, 400);
+                });
+
+                hotzone.addEventListener('click', () => this.toggleEditMode());
+            }
+
+            setupKeyboard() {
+                document.addEventListener('keydown', (e) => {
+                    if ((e.key === 'e' || e.key === 'E') && (!e.target || e.target.getAttribute('contenteditable') !== 'true')) {
+                        this.toggleEditMode();
+                    }
+
+                    if (e.ctrlKey && e.key === 's' && this.isActive) {
+                        e.preventDefault();
+                        this.saveEdits();
+                        this.showToast();
+                    }
+                });
+            }
+
+            toggleEditMode() {
+                this.isActive = !this.isActive;
+                const toggle = document.getElementById('editToggle');
+
+                toggle.classList.toggle('active', this.isActive);
+                toggle.textContent = this.isActive ? 'Editing' : 'Edit';
+
+                if (this.isActive) {
+                    toggle.classList.add('show');
+                }
+
+                document.querySelectorAll(this.editableSelectors).forEach((el) => {
+                    if (el.closest('.nav-dots') || el.closest('.edit-toggle')) return;
+
+                    el.contentEditable = this.isActive ? 'true' : 'false';
+                    el.removeEventListener('input', this.boundSaveHandler);
+
+                    if (this.isActive) {
+                        el.addEventListener('input', this.boundSaveHandler);
+                    }
+                });
+            }
+
+            saveEdits() {
+                const edits = {};
+                let editableIndex = 0;
+
+                document.querySelectorAll(this.editableSelectors).forEach((el) => {
+                    if (el.closest('.nav-dots') || el.closest('.edit-toggle')) return;
+                    edits[`edit-${editableIndex}`] = el.innerHTML;
+                    editableIndex += 1;
+                });
+
+                localStorage.setItem(this.storageKey, JSON.stringify(edits));
+            }
+
+            loadSavedEdits() {
+                const saved = localStorage.getItem(this.storageKey);
+                if (!saved) return;
+
+                try {
+                    const edits = JSON.parse(saved);
+                    let editableIndex = 0;
+
+                    document.querySelectorAll(this.editableSelectors).forEach((el) => {
+                        if (el.closest('.nav-dots') || el.closest('.edit-toggle')) return;
+
+                        const key = `edit-${editableIndex}`;
+                        if (Object.prototype.hasOwnProperty.call(edits, key)) {
+                            el.innerHTML = edits[key];
+                        }
+
+                        editableIndex += 1;
+                    });
+                } catch (e) {
+                    console.warn('Could not parse saved edits from localStorage.', e);
+                }
+            }
+
+            showToast() {
+                const toast = document.getElementById('saveToast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+            new InlineEditor();
+        });
+    </script>
+</body>
+</html>
