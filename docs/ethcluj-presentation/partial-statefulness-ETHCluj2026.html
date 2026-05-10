@@ -19,6 +19,36 @@
 .diagram{background:rgba(20,25,41,.74);border:1px solid var(--border);border-radius:16px;padding:clamp(.8rem,2vw,1.5rem);font-family:var(--body),monospace;color:var(--muted);font-size:clamp(.73rem,1.05vw,.95rem);line-height:1.7;white-space:pre-line}.diagram .t{color:var(--teal);font-weight:700}.diagram .v{color:var(--violet);font-weight:700}.diagram .a{color:var(--amber);font-weight:700}.diagram .r{color:var(--rose);font-weight:700}.big{font-family:var(--display);font-size:clamp(2.5rem,7vw,6.2rem);font-style:italic;line-height:.95;background:linear-gradient(135deg,var(--teal),#5eead4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}.metric{display:flex;align-items:end;gap:.6rem}.metric span{color:var(--muted);font-size:var(--small);line-height:1.2;padding-bottom:.5rem}.flow{display:flex;align-items:center;gap:clamp(.45rem,1vw,.9rem);flex-wrap:wrap}.step{flex:1;min-width:120px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.75rem}.step b{display:block;color:var(--text);font-size:var(--small);margin-bottom:.2rem}.step span{font-size:var(--tag);color:var(--muted)}.arrow{color:var(--dim);font-size:1.15rem}.mini{font-size:var(--small);color:var(--dim);line-height:1.5}.slide-num{position:absolute;right:clamp(1rem,3vw,2rem);bottom:clamp(.8rem,2vh,1.5rem);font-size:var(--small);color:var(--dim);font-weight:600;letter-spacing:.05em}.progress-bar{position:fixed;top:0;left:0;height:2px;width:0;background:linear-gradient(90deg,var(--teal),var(--violet));z-index:9999}.nav-dots{position:fixed;right:clamp(.8rem,2vw,1.5rem);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:1000}.nav-dot{width:6px;height:6px;border-radius:50%;background:var(--dim);border:0;cursor:pointer}.nav-dot.active{background:var(--teal);box-shadow:0 0 8px rgba(45,212,191,.45);transform:scale(1.35)}.center{text-align:center;align-items:center}.center .slide-content{align-items:center;text-align:center}.compact-table{width:100%;border-collapse:collapse;font-size:var(--p)}.compact-table th{color:var(--teal);font-size:var(--small);text-transform:uppercase;letter-spacing:.1em;text-align:left;padding:.55rem;border-bottom:1px solid var(--border)}.compact-table td{color:var(--muted);padding:.55rem;border-bottom:1px solid rgba(255,255,255,.04)}.compact-table td:first-child{color:var(--text);font-weight:650}.kbd{font-family:monospace;color:var(--teal)}
 @media(max-width:900px){.two,.three,.four{grid-template-columns:1fr}.slide-content{padding:clamp(1rem,4vw,2rem)}.slide{height:auto;min-height:100vh}.nav-dots{display:none}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+.topology-slide .two {
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: clamp(1rem, 2.5vw, 2.2rem);
+}
+
+.topology-stack {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.6rem, 1.2vh, 1rem);
+}
+
+.topology-img {
+  width: 100%;
+  max-height: min(26vh, 285px);
+  object-fit: contain;
+  object-position: center;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 42px rgba(0,0,0,.42);
+  background: rgba(20,25,41,.55);
+}
+
+.topology-caption {
+  font-size: var(--small);
+  color: var(--dim);
+  line-height: 1.25;
+  margin-top: -0.25rem;
+}
 </style>
 </head>
 <body>
@@ -58,26 +88,61 @@
 <!-- ===========================================
      SLIDE 3: WHAT IS PARTIAL STATEFULNESS?
      =========================================== -->
-<section class="slide" data-slide="2">
-  <div class="topo-bg"><div class="topo-ring" style="width:500px;height:500px;bottom:-200px;right:-150px;animation-delay:-2s;"></div><div class="topo-ring" style="width:350px;height:350px;bottom:-100px;right:-50px;animation-delay:-4s;"></div></div>
+<section class="slide topology-slide" data-slide="2">
+  <div class="topo-bg">
+    <div class="topo-ring" style="width:500px;height:500px;bottom:-200px;right:-150px;animation-delay:-2s;"></div>
+    <div class="topo-ring" style="width:350px;height:350px;bottom:-100px;right:-50px;animation-delay:-4s;"></div>
+  </div>
+
   <div class="blob" style="width:clamp(200px,25vw,350px);height:clamp(200px,25vw,350px);bottom:-8%;right:-3%;background:var(--teal);opacity:0.08;"></div>
+
   <div class="slide-content">
     <div class="eyebrow reveal">Core Concept of Partial Statefulness</div>
-    <h2 class="slide-title reveal d1">What if nodes could hold <em>only</em><br>what they care about...</h2>
-    <div class="rule reveal d2"></div>
-    <div><strong>EL logical topology: MPT traversal → implicit address-keyed trie. Partial Nodes need a coherence dataset plus local MPT corridors.</strong></div><br>
-    <ul class="points reveal d3" style="margin-bottom:var(--gap);">
-      <li><strong>Account commitments</strong> — maintain accountHash values for relevant or broad account ranges.</li>
-      <li><strong>Selective storage/code</strong> — keep contract State Sub-Graphs for contracts the node chooses to track.</li>
-    </ul>
-    <div class="rule reveal d2"></div>
-    <div><strong>CL logical topology: SSZ BeaconState container → explicit top-level field roots. Partial Nodes can track selected CL State Sub-Graphs.</strong></div><br>
-    <ul class="points reveal d3" style="margin-bottom:var(--gap);">
-      <li><strong>Coordination facts</strong> — validators, balances, finality, slashings/exits/withdrawals, and execution-payload bridge data.</li>
-    </ul>
-    <div class="rule reveal d2"></div>
-    <h2 class="slide-title reveal d1">...and still be <em>coherent</em><br> under canonical roots?</h2>
-  </div><div class="slide-num">03 / 11</div>
+
+    <div class="two">
+      <div class="reveal d1">
+        <h2 class="slide-title">What if nodes could hold <em>only</em><br>what they care about...</h2>
+
+        <div class="rule d2"></div>
+
+        <div>
+          <strong>EL logical topology: MPT traversal → implicit address-keyed trie. Partial Nodes need a coherence dataset (account-level hashes) plus local MPT corridors.</strong>
+        </div><br>
+
+        <ul class="points d3" style="margin-bottom:var(--gap);">
+          <li><strong>Account commitments</strong> — maintain accountHash values for relevant or broad account ranges.</li>
+          <li><strong>Selective storage/code</strong> — keep contract State Sub-Graphs for contracts the node chooses to track.</li>
+        </ul>
+
+        <div class="rule d2"></div>
+
+        <div>
+          <strong>CL logical topology: SSZ BeaconState container → explicit top-level field roots. Partial Nodes can track selected CL State Sub-Graphs.</strong>
+        </div><br>
+
+        <ul class="points d3" style="margin-bottom:var(--gap);">
+          <li><strong>Coordination facts</strong> — validators, balances, finality, slashings/exits/withdrawals, and execution-payload bridge data.</li>
+        </ul>
+
+        <div class="rule d2"></div>
+
+        <h2 class="slide-title">...and still be <em>coherent</em><br> under canonical roots?</h2>
+
+        <div class="callout reveal d4" style="margin-top:var(--gap)"><p><strong>Functional domains:</strong> Both the EL and the CL state graphs, albeit very different in structure, admit a topological decomposition along functional boundaries, and although their topology is already organized along functional domains, this property remains currently unexplored.
+        </div>
+      </div>
+
+      <div class="topology-stack reveal d3">
+        <img class="topology-img" src="../../assets/MPT-traverse.png" alt="EL logical state topology: MPT traversal">
+        <div class="topology-caption">EL: MPT traversal / implicit address-keyed trie</div>
+
+        <img class="topology-img" src="../../assets/beaconstate-traverse.png" alt="CL logical state topology: BeaconState SSZ container">
+        <div class="topology-caption">CL: BeaconState SSZ container / top-level field roots</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-num">03 / 11</div>
 </section>
 <!-- ===========================================
      SLIDE 4: THE THREE PLANES
@@ -251,7 +316,7 @@ node keeps / heals SSZ corridors</div>
 <section class="slide center" data-slide="10">
   <div class="topo-bg"><div class="topo-ring" style="width:760px;height:760px;bottom:-330px;left:-250px"></div><div class="topo-ring v" style="width:660px;height:660px;top:-280px;right:-230px"></div></div>
   <div class="slide-content">
-    <div class="eyebrow reveal">Proposal</div>
+    <div class="eyebrow reveal">Proposal Frame</div>
     <h2 class="slide-title reveal d1">Partial Statefulness should not stop at EL.</h2>
     <div class="rule reveal d2"></div>
     <p class="sub reveal d3">EL partial state decentralizes application data. CL partial state decentralizes Ethereum’s coordination truth.</p>
