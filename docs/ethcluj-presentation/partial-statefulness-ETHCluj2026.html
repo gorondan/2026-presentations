@@ -106,22 +106,26 @@
         <div class="rule d2"></div>
 
         <div>
-          <strong>EL logical topology: MPT traversal → implicit address-keyed trie. Partial Nodes need a coherence dataset (account-level hashes) plus local MPT corridors.</strong>
+          <strong>EL logical topology: MPT traversal → implicit address-keyed trie. Partial Nodes need a coherence dataset (at account level).</strong>
         </div><br>
 
+        <div>
+          <strong>EL Domains:</strong>
+        </div><br>
         <ul class="points d3" style="margin-bottom:var(--gap);">
-          <li><strong>Account commitments</strong> — maintain accountHash values for relevant or broad account ranges.</li>
-          <li><strong>Selective storage/code</strong> — keep contract State Sub-Graphs for contracts the node chooses to track.</li>
+          <li><strong>Full account trie </strong> — every account's balance, nonce, and code hash. The complete view of all 300+ million accounts.</li>
+          <li><strong>Selective storage</strong> — only keep storage trees for contracts the node chooses to track.</li>
+          <li><strong>Selective code</strong> — only keep bytecode trees for contracts the node chooses to track.</li>
         </ul>
 
         <div class="rule d2"></div>
 
         <div>
-          <strong>CL logical topology: SSZ BeaconState container → explicit top-level field roots. Partial Nodes can track selected CL State Sub-Graphs.</strong>
+          <strong>CL logical topology: SSZ BeaconState container → explicit top-level domains roots. Partial Nodes don't need a coherence dataset, they can directly track selected CL sub-graphs.</strong>
         </div><br>
 
         <ul class="points d3" style="margin-bottom:var(--gap);">
-          <li><strong>Coordination facts</strong> — validators, balances, finality, slashings/exits/withdrawals, and execution-payload bridge data.</li>
+          <li><strong>CL Domains</strong> — validators, balances, finality, slashings/exits/withdrawals, and execution-payload bridge data.</li>
         </ul>
 
         <div class="rule d2"></div>
@@ -156,7 +160,7 @@
     <div class="three reveal d3">
       <div class="card"><h3>EL · validity</h3><p>Execution correctness proven by zk; most nodes need not store full EL state.</p></div>
       <div class="card"><h3>CL · coordination</h3><p>Fork-choice, finality, validator lifecycle, payload anchoring.</p></div>
-      <div class="card"><h3>State · service</h3><p>Selective persistence, authenticated RPC, proof serving, slice healing.</p></div>
+      <div class="card"><h3>State · service</h3><p>Selective persistence, authenticated RPC, proof serving, state syncing.</p></div>
     </div>
     <div class="diagram reveal d3" style="margin-top:var(--gap)"><span class="t">Partial Statefulness</span> lives mainly in the state-service plane: make selective state useful enough to be widely held.</div>
   </div><div class="slide-num">04 / 11</div>
@@ -178,31 +182,29 @@
         <li><strong>Partial Statefulness:</strong> introduces a middle tier that keeps selected state useful, coherent, and proof-serving.</li>
       </ul>
       <div class="diagram"><span class="t">ZK-era state-retention classes</span>
-0. Light Client
-  └─ headers / finality / remote state
+  0. Light Client
+    └─ headers / finality / remote state
 
-1. Partial Node / Partial Client
-  ├─ VOPS
-  │   validity-only partial statelessness
-  │   zk attesting + CR / FOCIL
-  │   minimal local state, no general RPC serving
-  │
-  ├─ Wallet / App Partial Client
-  │   selected EL + CL state
-  │   local verified reads
-  │
-  ├─ Edge Partial Node
-  │   selected State Sub-Graphs
-  │   MPT + SSZ corridors
-  │   authenticated local RPC
-  │
-  └─ State Mesh Node
-      many state bundles
-      proof serving / state markets
+  1. Partial Node / Partial Client
+    ├─ VOPS (validity-only partial statelessness)
+    │    zk attesting + CR / FOCIL
+    │    minimal local state, no general RPC serving
+    │
+    ├─ Wallet / App Partial Client
+    │    selected EL + CL state
+    │    local verified reads
+    │
+    ├─ Edge Partial Node
+    │    selected State Sub-Graphs
+    │    MPT + SSZ corridors, authenticated local RPC
+    │
+    ├─ State Mesh Node
+    │    many state bundles,
+    └─   proof serving / state markets
 
-2. Full Node ─ full current EL+CL state
+  2. Full Node ─ full current EL+CL state
 
-3. Archive Node ─ full node + historical state</div>
+  3. Archive Node ─ full node + historical state</div>
     </div>
     <div class="callout reveal d4" style="margin-top:var(--gap)">
       <p><strong>Key point:</strong> VOPS are a subset of Partial Nodes — the smallest Partial Node profile: validity-only, nearly stateless, optimized for mass adoption.</p>
@@ -210,30 +212,43 @@
   </div><div class="slide-num">05 / 11</div>
 </section>
 <!-- ===========================================
-     SLIDE 6: EL SIDE
+     SLIDE 6: EL SIDE - FOLLOWING THE CHAIN — via some sidecar
      =========================================== -->
-<section class="slide" data-slide="5">
-  <div class="blob" style="width:430px;height:430px;bottom:-10%;right:-6%;background:var(--teal);opacity:.08"></div>
-  <div class="slide-content">
-    <div class="eyebrow reveal">EL Side</div>
-    <h2 class="slide-title reveal d1">BAL gives values.<br><em>Hash-diffs give coherence.</em></h2>
-    <div class="rule reveal d2"></div>
-    <div class="two reveal d3">
-      <div class="diagram"><span class="a">BAL / full-diff</span>
-address → balance / nonce / storage / code post-values
+    <section class="slide" data-slide="3">
+        <div class="topo-bg">
+            <div class="topo-ring" style="width:550px;height:550px;bottom:-250px;left:-200px;animation-delay:-2s;"></div>
+        </div>
 
-<span class="t">Account-hash diff</span>
-address, old_accountHash, new_accountHash
+        <div class="blob" style="width:clamp(200px,25vw,350px);height:clamp(200px,25vw,350px);bottom:-10%;left:10%;background:var(--accent-amber);opacity:0.06;"></div>
 
-<span class="v">Local rule</span>
-node keeps / heals MPT corridors</div>
-      <div class="points">
-        <div class="callout"><p><strong>No Merkle paths in the sidecar:</strong> payloads carry values and old→new commitments; proof-serving nodes maintain corridors locally.</p></div>
-        <div class="callout"><p><strong>No full re-execution for Partial Nodes:</strong> a small, widely available update stream keeps selected state coherent.</p></div>
-      </div>
-    </div>
-  </div><div class="slide-num">06 / 11</div>
-</section>
+        <div class="slide-content">
+            <div class="eyebrow reveal">EL side</div>
+
+            <h2 class="slide-title reveal reveal-d1">Following the tip of the chain with <em>Full-state diffs + Account-hash diffs</em></h2>
+
+            <div class="rule d2"></div>
+            <div><strong>No re-execution</strong> — the small, widely available minimal data set, updated via some vehicle, e.g. Block Access Lists (BAL), keeps everyone coherent.</div>
+            <div class="rule d2"></div>
+
+            <ul class="points reveal reveal-d3" style="margin-bottom:var(--content-gap);">
+                <li><strong>1. Snap sync account trie</strong> — download all accounts + intermediate MPT nodes (~50 GB).</li>
+                <li><strong>2. Snap sync tracked storage</strong> — download full storage tries for selected contracts.</li>
+                <li><strong>3. Heal state</strong> — apply state diffs per block, then hash everything up to state root and compare it with the block header root.</li>
+            </ul>
+
+            <div class="rule d2"></div>
+
+            <div class="callout reveal-d2">
+                <p><strong>For coherence, Partially Stateful (PS) nodes need:</strong> balance changes, nonce changes, storage writes, code changes — per account. Tracked contracts need full storage updates. For untracked contracts, the node needs to check which ones changed and update their account-level hash.</p>
+            </div>
+
+            <div class="callout reveal-d3" style="margin-top:clamp(0.3rem, 0.8vh, 0.5rem);border-left-color:var(--accent-violet);">
+                <p><strong>Resolving untracked contracts:</strong> <em>Ideally</em>, the vehicle carrying the full-state diffs would include account-hash diffs for all accounts touched by the current block's transactions — making partial nodes self-sufficient.</p>
+            </div>
+        </div>
+
+        <div class="slide-num">04 / 09</div>
+    </section>
 <!-- ===========================================
      SLIDE 7: CL SIDE · THE ALPHA
      =========================================== -->
@@ -259,30 +274,30 @@ node keeps / heals MPT corridors</div>
 <section class="slide" data-slide="7">
   <div class="slide-content">
     <div class="eyebrow reveal">CL Diff Primitive</div>
-    <h2 class="slide-title reveal d1"><span class="kbd">field_index → subgraphRoot</span></h2>
+    <h2 class="slide-title reveal d1"><span class="kbd">CL domain index → domainRoot</span></h2>
     <div class="rule reveal d2"></div>
     <div class="two reveal d3">
-      <div class="diagram"><span class="t">CL hash-diff</span>
-(field_index, old_subgraphRoot, new_subgraphRoot)
+      <div class="diagram"><span class="t">CL domain hash-diff</span>
+(domain_index, old_domainRoot, new_domainRoot)
 
 <span class="a">Examples</span>
 validators[] · balances[] · slashings[]
 finality · execution payload header
 
 <span class="v">Local rule</span>
-node keeps / heals SSZ corridors</div>
-      <div class="callout v"><p><strong>Same logic as EL:</strong> sidecars carry root substitutions, not SSZ multiproofs. Clients that need proof-serving maintain their own corridors.</p></div>
+node keeps / syncs SSZ intermediate nodes</div>
+      <div class="callout v"><p><strong>Same logic as EL:</strong> sidecars carry root substitutions, not SSZ multiproofs. Clients that need proof-serving maintain their own internal nodes.</p></div>
     </div>
   </div><div class="slide-num">08 / 11</div>
 </section>
 <!-- ===========================================
-     SLIDE 9: CL STATE SUB-GRAPH BUNDLES
+     SLIDE 9: CL DOMAINS BUNDLES
      =========================================== -->
 <section class="slide" data-slide="8">
   <div class="blob" style="width:420px;height:420px;top:-8%;right:-8%;background:var(--amber);opacity:.08"></div>
   <div class="slide-content">
-    <div class="eyebrow reveal">CL State Sub-Graph Bundles</div>
-    <h2 class="slide-title reveal d1">Expose consensus facts as <em>bundles</em>.</h2>
+    <div class="eyebrow reveal">CL Domains Bundles</div>
+    <h2 class="slide-title reveal d1">Expose consensus functional domains (state sub-graphs) as <em>bundles</em>.</h2>
     <div class="rule reveal d2"></div>
     <div class="three reveal d3">
       <div class="card"><h3>Staking</h3><p>validators, balances, slashing, exits, withdrawals, participation.</p></div>
@@ -301,10 +316,10 @@ node keeps / heals SSZ corridors</div>
     <h2 class="slide-title reveal d1">EL value → CL finality.<br><em>Locally.</em></h2>
     <div class="rule reveal d2"></div>
     <div class="flow reveal d3">
-      <div class="step"><b>EL value</b><span>account / storage</span></div><div class="arrow">→</div>
-      <div class="step"><b>EL proof</b><span>MPT corridor</span></div><div class="arrow">→</div>
+      <div class="step"><b>EL value</b><span>account / storage / bytecode</span></div><div class="arrow">→</div>
+      <div class="step"><b>EL proof</b><span>MPT paths</span></div><div class="arrow">→</div>
       <div class="step"><b>stateRoot</b><span>execution payload</span></div><div class="arrow">→</div>
-      <div class="step"><b>Beacon state</b><span>CL subgraph root</span></div><div class="arrow">→</div>
+      <div class="step"><b>Beacon state</b><span>CL domain root</span></div><div class="arrow">→</div>
       <div class="step"><b>Finalized</b><span>checkpoint</span></div>
     </div>
     <div class="callout reveal d4" style="margin-top:var(--gap)"><p><strong>Upgrade:</strong> Partial Clients become protocol-aware agents, not just wallet-state verifiers.</p></div>
@@ -320,7 +335,7 @@ node keeps / heals SSZ corridors</div>
     <h2 class="slide-title reveal d1">Partial Statefulness should not stop at EL.</h2>
     <div class="rule reveal d2"></div>
     <p class="sub reveal d3">EL partial state decentralizes application data. CL partial state decentralizes Ethereum’s coordination truth.</p>
-    <div class="pillrow reveal d4"><span class="pill t">Extend hash-diffs to CL</span><span class="pill v">Standardize CL State Sub-Graph bundles</span><span class="pill a">Keep corridors local</span><span class="pill r">Reduce beacon RPC trust</span></div>
+    <div class="pillrow reveal d4"><span class="pill t">Extend diffs to CL</span><span class="pill v">Standardize CL State Sub-Graph bundles</span><span class="pill a">Keep corridors local</span><span class="pill r">Reduce beacon RPC trust</span></div>
   </div><div class="slide-num">11 / 11</div>
 </section>
 <script>
