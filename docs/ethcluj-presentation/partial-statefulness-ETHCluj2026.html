@@ -326,17 +326,39 @@ node keeps / syncs SSZ intermediate nodes</div>
   </div><div class="slide-num">10 / 11</div>
 </section>
 <!-- ===========================================
-     SLIDE 11: PROPOSAL FRAME
+     SLIDE 11: CLOSING THOUGHTS
      =========================================== -->
 <section class="slide center" data-slide="10">
   <div class="topo-bg"><div class="topo-ring" style="width:760px;height:760px;bottom:-330px;left:-250px"></div><div class="topo-ring v" style="width:660px;height:660px;top:-280px;right:-230px"></div></div>
   <div class="slide-content">
-    <div class="eyebrow reveal">Proposal Frame</div>
-    <h2 class="slide-title reveal d1">Partial Statefulness should not stop at EL.</h2>
-    <div class="rule reveal d2"></div>
-    <p class="sub reveal d3">EL partial state decentralizes application data. CL partial state decentralizes Ethereum’s coordination truth.</p>
-    <div class="pillrow reveal d4"><span class="pill t">Extend diffs to CL</span><span class="pill v">Standardize CL State Sub-Graph bundles</span><span class="pill a">Keep witnesses local</span><span class="pill r">Reduce beacon RPC trust</span></div>
-  </div><div class="slide-num">11 / 11</div>
+      <div class="eyebrow reveal">Proposal</div>
+      <h2 class="slide-title reveal d1">Partial Statefulness should not stop at EL.</h2>
+      <div class="rule reveal d2"></div>
+      <p class="sub reveal d3">EL partial state decentralizes application data. CL partial state decentralizes Ethereum’s coordination truth.</p>
+      <div class="pillrow reveal d4"><span class="pill t">Extend diffs to CL</span><span class="pill v">Standardize CL State Sub-Graph bundles</span><span class="pill a">Keep witnesses local</span><span class="pill r">Reduce beacon RPC trust</span></div>
+  </div>
+    <div class="slide-num">11 / 11</div>
+</section>
+<!-- ===========================================
+     SLIDE 12: RESOURCES SLIDE
+     =========================================== -->
+<section class="slide center" data-slide="11">
+  <div class="topo-bg"><div class="topo-ring" style="width:760px;height:760px;bottom:-330px;left:-250px"></div><div class="topo-ring v" style="width:660px;height:660px;top:-280px;right:-230px"></div></div>
+  <div class="slide-content">
+    <div><strong>RESOURCES:</strong></div><br>
+    <div class="rule d2"></div>
+    <div class="reveal d1">
+      <ul class="points d3" style="margin-bottom:var(--gap);">
+        <li><strong>Carlos Perez </strong><a href="https://ethresear.ch/t/the-future-of-state-part-1-oopsie-a-new-type-of-snap-sync-based-wallet-lightclient/23395/1" target="_blank">The Future of State, Part 1.</a></li>
+        <li><strong>Carlos Perez </strong><a href="https://ethresear.ch/t/the-future-of-state-part-2-beyond-the-myth-of-partial-statefulness-the-reality-of-zkevms/23396" target="_blank">The Future of State, Part 2.</a></li>
+        <li><strong>Carlos Perez @EthStaker summit, ETHCC 2026 </strong><a href="https://cperezz.github.io/presentations/partial-statefulness-ethcc2026.html" target="_blank">Partial Statefulness - Who holds Ethereum’s State?</a></li>
+        <li><strong>Dan Goron, @Stateless summit, ETHCC 2026 </strong><a href="https://gorondan.github.io/2026-presentations/ethcc-presentation/partial-statefulness-ETHCC2026.html" target="_blank">Partial Statefulness - Is it all or nothing in the zk era?</a></li>
+        <li><strong>Go Ethereum draft PR </strong><a href="https://github.com/ethereum/go-ethereum/pull/33764" target="_blank">add partial statefulness mode via EIP-7928.</a></li>
+        <li><strong>Soispoke's ethresearch </strong><a href="https://github.com/ethereum/pm/issues/1944" target="_blank">Validity-Only Partial Statelessness (VOPS).</a></li>
+      </ul>
+    </div>
+    <div class="rule d2"></div>
+  </div>
 </section>
 <script>
 class SlidePresentation{constructor(){this.slides=[...document.querySelectorAll('.slide')];this.currentSlide=0;this.isScrolling=false;this.setupIntersectionObserver();this.setupKeyboardNav();this.setupTouchNav();this.setupWheelNav();this.setupProgressBar();this.setupNavDots()}setupIntersectionObserver(){const o=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');const i=this.slides.indexOf(e.target);if(i!==-1){this.currentSlide=i;this.updateProgressBar();this.updateNavDots()}}})},{threshold:.5});this.slides.forEach(s=>o.observe(s))}goToSlide(i){i=Math.max(0,Math.min(i,this.slides.length-1));this.slides[i].scrollIntoView({behavior:'smooth'});this.currentSlide=i;this.updateProgressBar();this.updateNavDots()}setupKeyboardNav(){document.addEventListener('keydown',e=>{switch(e.key){case'ArrowDown':case'ArrowRight':case' ':case'PageDown':e.preventDefault();this.goToSlide(this.currentSlide+1);break;case'ArrowUp':case'ArrowLeft':case'PageUp':e.preventDefault();this.goToSlide(this.currentSlide-1);break;case'Home':e.preventDefault();this.goToSlide(0);break;case'End':e.preventDefault();this.goToSlide(this.slides.length-1);break}})}setupTouchNav(){let y=0;document.addEventListener('touchstart',e=>{y=e.touches[0].clientY},{passive:true});document.addEventListener('touchend',e=>{const d=y-e.changedTouches[0].clientY;if(Math.abs(d)>50)this.goToSlide(this.currentSlide+(d>0?1:-1))},{passive:true})}setupWheelNav(){document.addEventListener('wheel',e=>{if(this.isScrolling)return;this.isScrolling=true;if(Math.abs(e.deltaY)>30)this.goToSlide(this.currentSlide+(e.deltaY>0?1:-1));setTimeout(()=>this.isScrolling=false,800)},{passive:true})}setupProgressBar(){this.progressBar=document.getElementById('progressBar');this.updateProgressBar()}updateProgressBar(){if(this.progressBar)this.progressBar.style.width=((this.currentSlide+1)/this.slides.length)*100+'%'}setupNavDots(){this.navDots=document.getElementById('navDots');if(!this.navDots)return;this.navDots.innerHTML='';this.slides.forEach((_,i)=>{const b=document.createElement('button');b.className='nav-dot'+(i===0?' active':'');b.setAttribute('aria-label',`Go to slide ${i+1}`);b.addEventListener('click',()=>this.goToSlide(i));this.navDots.appendChild(b)})}updateNavDots(){if(!this.navDots)return;this.navDots.querySelectorAll('.nav-dot').forEach((d,i)=>d.classList.toggle('active',i===this.currentSlide))}}
